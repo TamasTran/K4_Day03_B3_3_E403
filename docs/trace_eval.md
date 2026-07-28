@@ -5,13 +5,15 @@
 
 ## 🎯 1. BẢNG CHẤM ĐIỂM AGENTIC FIT (SCORING MATRIX)
 
+**Đề tài:** Trợ Lý Sàng Lọc Hồ Sơ Tuyển Dụng & Hẹn Phỏng Vấn
+
 | Tiêu chí | Điểm (1-5) | Lý do đánh giá |
 | :--- | :---: | :--- |
-| 🧠 **Multi-step Reasoning** | `4/5` | Cần suy luận từ tra cứu thời tiết đến chọn trang phục. |
-| 🛠️ **Tool Interaction** | `5/5` | Cần tra cứu dữ liệu thời gian thực qua API thời tiết/chuyến bay. |
-| 🔀 **Dynamic Decision** | `4/5` | Kết quả bước trước quyết định hành động bước sau. |
-| ⏳ **Long Horizon** | `3/5` | Quy trình gồm 2-3 bước xử lý ngắn. |
-| **TỔNG ĐIỂM FIT** | **16/20** | **KẾT LUẬN: BÀI TOÁN RẤT NÊN DÙNG REACT AGENT!** |
+| 🧠 **Multi-step Reasoning** | `5/5` | Cần suy luận phức tạp: phân tích hồ sơ → so sánh yêu cầu → đánh giá phù hợp → lên kế hoạch phỏng vấn → xử lý từ chối. |
+| 🛠️ **Tool Interaction** | `5/5` | Tương tác nhiều công cụ: đọc DB hồ sơ, tra cứu thông tin công việc, gửi email hẹn, kiểm tra lịch interviewer, quản lý calendar. |
+| 🔀 **Dynamic Decision** | `5/5` | Quyết định xem hồ sơ phù hợp phụ thuộc nội dung chi tiết. Thời gian hẹn phỏng vấn phụ thuộc lịch có sẵn. Kết quả bước trước quyết định hành động tiếp theo. |
+| ⏳ **Long Horizon** | `5/5` | Quy trình dài: sàng lọc sơ bộ → phân tích chi tiết → xếp hạng → hẹn phỏng vấn → gửi thông báo. Yêu cầu duy trì trạng thái qua nhiều bước. |
+| **TỔNG ĐIỂM FIT** | **20/20** | **KẾT LUẬN: BÀI TOÁN HOÀN HẢO CHO AGENTIC ARCHITECTURE - CỰC KỲ NÊN DÙNG REACT AGENT!** |
 
 ---
 
