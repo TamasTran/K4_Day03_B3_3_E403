@@ -13,204 +13,292 @@ Dành cho Role 5: Observability & Reviewer
 | 🛠️ *Tool Interaction* | 5/5 | Tương tác nhiều công cụ: đọc DB hồ sơ, tra cứu thông tin công việc, gửi email hẹn, kiểm tra lịch interviewer, quản lý calendar. |
 | 🔀 *Dynamic Decision* | 5/5 | Quyết định xem hồ sơ phù hợp phụ thuộc nội dung chi tiết. Thời gian hẹn phỏng vấn phụ thuộc lịch có sẵn. Kết quả bước trước quyết định hành động tiếp theo. |
 | ⏳ *Long Horizon* | 5/5 | Quy trình dài: sàng lọc sơ bộ → phân tích chi tiết → xếp hạng → hẹn phỏng vấn → gửi thông báo. Yêu cầu duy trì trạng thái qua nhiều bước. |
-| *TỔNG ĐIỂM FIT* | *20/20* | *KẾT LUẬN: BÀI TOÁN HOÀN HẢO CHO AGENTIC ARCHITECTURE - CỰC KỲ NÊN DÙNG REACT AGENT!* |
+| *TỔNG ĐIỂM FIT* | *20/20* | *KẾT LUẬN: BÀI TOÁN HOÀN HẢO CHO AGENTIC ARCHITECTURE |
 
 ---
 
 ## 🔍 2. SO SÁNH PHẢN HỒI (TEST CASE #3)
-Môi trường chạy thử:
 
-- Provider: `MockProvider` (offline, không tiêu tốn API key)
-- Guardrail vòng lặp: `MAX_ITERATIONS = 5`
-- Nguồn test: `config/test_cases.json`
+**Câu hỏi:** *"Hãy so sánh: Ứng viên CD-001 có phù hợp với công việc
+JOB-2024-001 (Python Developer) không?"*
 
-## Test case được tạo như thế nào?
+### 🤖 Chatbot Baseline
 
-Các test case trong `config/test_cases.json` được nhóm thiết kế thủ công dựa
-trên các luồng nghiệp vụ tuyển dụng mà Agent cần xử lý. Mỗi test case có các
-trường chính:
+**Phản hồi:** *"Để tiến hành so sánh ứng viên CD-001 với công việc
+JOB-2024-001 (Python Developer), tôi sẽ cần lấy thông tin mô tả công việc
+trước. Xin vui lòng chờ tôi một chút trong khi tôi lấy thông tin này."*
 
-- `question`: câu hỏi đầu vào gửi cho Agent.
-- `expected_behavior`: chuỗi hành vi và thứ tự gọi tool mong đợi.
-- `tools_used`: danh sách tool dự kiến được sử dụng.
-- `success_criteria`: dữ liệu hoặc kết quả cần xuất hiện để xem là đạt.
-- `trap_reason`: lý do tạo câu bẫy, chỉ có ở các edge case.
+**Nhận xét:** Chatbot chỉ mô tả ý định tra cứu nhưng không thực sự gọi công
+cụ, không lấy được hồ sơ, JD hoặc điểm phù hợp. Vì vậy, yêu cầu của người
+dùng chưa được giải quyết.
 
-Bộ test được chia thành ba nhóm:
+### 🧠 ReAct Agent
 
-1. **Single tool:** kiểm tra Agent chọn đúng một tool để đọc JD hoặc hồ sơ.
-2. **Multi-step:** kiểm tra Agent gọi nhiều tool theo đúng thứ tự và tổng hợp
-   Observation thành câu trả lời.
-3. **Edge case:** dùng ID không tồn tại hoặc slot không khả dụng để kiểm tra
-   Agent có dừng an toàn hay không.
+**Thought 1:** Cần lấy hồ sơ của ứng viên CD-001.
 
-## Nguồn dữ liệu chuẩn (ground truth)
+**Action 1:** `get_candidate_profile["CD-001"]`
 
-Toàn bộ dữ liệu dùng trong Mốc 3 là dữ liệu mock được khai báo trong
-`src/tools.py`, không lấy từ API hoặc cơ sở dữ liệu tuyển dụng bên ngoài:
+**Observation 1:** CD-001 có 4 năm kinh nghiệm Python, 2 năm Django,
+1 năm PostgreSQL; có các kỹ năng Python, Django, PostgreSQL, REST API,
+Docker và Linux.
 
-| Dữ liệu | Biến nguồn trong `src/tools.py` |
-|---|---|
-| Mô tả công việc, kỹ năng và lương | `JOB_DESCRIPTIONS` |
-| Hồ sơ và kỹ năng ứng viên | `CANDIDATES` |
-| Người phỏng vấn và slot trống | `INTERVIEWERS` |
-| Điểm phù hợp của từng cặp ứng viên–công việc | `evaluations` trong `evaluate_candidate_fit()` |
-| Thứ hạng ứng viên | `rankings` trong `rank_candidates()` |
+**Thought 2:** Cần lấy yêu cầu chính thức của JOB-2024-001 để đối chiếu.
 
-Ví dụ, kết quả `CD-001` phù hợp `JOB-2024-001` ở mức `9/10` được xem là đúng
-vì cặp này được khai báo trực tiếp trong bảng `evaluations`. Tương tự,
-`CD-999` là dữ liệu sai vì mã này không tồn tại trong `CANDIDATES`.
+**Action 2:** `get_job_description["JOB-2024-001"]`
 
-Do đó, “đúng” trong báo cáo này có nghĩa là kết quả của Agent nhất quán với
-mock data và quy tắc nghiệp vụ của bài lab; nó không có nghĩa là dữ liệu đã
-được xác minh với một hệ thống HR thật.
+**Observation 2:** Vị trí Python Developer yêu cầu 3+ năm kinh nghiệm
+Python, Django, PostgreSQL và các kỹ năng REST API, Docker; mức lương
+18–25 triệu VNĐ.
 
-## Cách xác định pass/fail
+**Thought 3:** Đã có hồ sơ và JD, cần dùng công cụ đánh giá mức độ phù hợp.
 
-Luồng đối chiếu được sử dụng:
+**Action 3:** `evaluate_candidate_fit["CD-001", "JOB-2024-001"]`
 
-```text
-question trong test_cases.json
-        ↓
-Agent chọn Thought và Action
-        ↓
-AVAILABLE_TOOLS gọi hàm tương ứng
-        ↓
-Tool đọc mock data trong tools.py
-        ↓
-Observation được trả về Agent
-        ↓
-Đối chiếu tool đã gọi, dữ liệu trả về và hành vi dừng
-```
-
-Một test được xem là đạt khi:
-
-- Agent chọn đúng tool cần thiết và không gọi tool ngoài danh sách.
-- Các ID, điểm số, kỹ năng và slot trong Observation khớp mock data.
-- Luồng nhiều bước thực hiện đúng thứ tự nghiệp vụ.
-- Agent dừng khi Observation chứa `LỖI`.
-- Với câu bẫy lịch, Agent không gọi `schedule_interview` hoặc `send_email`
-  sau khi nhận thấy slot yêu cầu không khả dụng.
-
-## Test case 3 — Chuỗi suy luận nhiều tool
-
-Yêu cầu: so sánh ứng viên `CD-001` với công việc `JOB-2024-001`.
-
-```text
-Thought: Cần lấy hồ sơ ứng viên trước khi đánh giá.
-Action: get_candidate_profile["CD-001"]
-Observation: CD-001 có 4 năm Python, 2 năm Django, PostgreSQL,
-REST API, Docker và đang ứng tuyển JOB-2024-001.
-
-Thought: Cần lấy yêu cầu chính thức của công việc để đối chiếu.
-Action: get_job_description["JOB-2024-001"]
-Observation: Vị trí Python Developer yêu cầu 3+ năm Python,
-Django, PostgreSQL, REST API và Docker.
-
-Thought: Đã có hồ sơ và JD, có thể dùng tool đánh giá.
-Action: evaluate_candidate_fit["CD-001", "JOB-2024-001"]
-Observation: Điểm phù hợp 9/10 — RẤT PHÙ HỢP; kinh nghiệm đầy đủ,
+**Observation 3:** Ứng viên đạt 9/10 — RẤT PHÙ HỢP; kinh nghiệm đầy đủ,
 kỹ năng khớp 95% và học vấn phù hợp.
 
-Final Answer: CD-001 phù hợp với JOB-2024-001 ở mức 9/10.
-```
+**Final Answer:** *"Ứng viên CD-001 rất phù hợp với công việc JOB-2024-001,
+với điểm đánh giá 9/10."*
 
-Kết quả: đạt; Agent gọi đúng thứ tự ba tool và chỉ kết luận từ Observation.
+**Nhận xét:** ReAct Agent hoàn thành yêu cầu nhờ kết hợp suy luận tuần tự với
+ba công cụ. Kết luận cuối cùng có thể kiểm chứng từ các Observation và không
+dựa trên dữ liệu tự suy đoán.
 
-## Test case 7 — Ứng viên không tồn tại
+---
+
+## 3. Môi trường và nguồn bằng chứng
+
+Kết quả trong báo cáo này được cập nhật từ log chạy thực tế do nhóm cung cấp:
+
+- Provider: `OpenAIProvider`
+- Model: `gpt-4o-mini`
+- Số test case: 10
+- Guardrail: `MAX_ITERATIONS = 5`
+- Tool registry: `AVAILABLE_TOOLS` trong `src/tools.py`
+- Đặc tả test: `config/test_cases.json`
+
+Đây là lần chạy có request tới model OpenAI, không phải trace sinh bởi
+`MockProvider` hoặc planner offline. Vì output của LLM có tính không xác định,
+kết quả có thể thay đổi giữa các lần chạy.
+
+## 4. Test case và ground truth được tạo như thế nào?
+
+Các test case được nhóm thiết kế thủ công từ những luồng nghiệp vụ tuyển dụng
+cần kiểm tra. Mỗi phần tử trong `config/test_cases.json` gồm:
+
+- `question`: câu hỏi đầu vào.
+- `expected_behavior`: chuỗi hành động mong đợi.
+- `tools_used`: các tool dự kiến phải được gọi.
+- `success_criteria`: dữ liệu và kết quả cần đạt.
+- `trap_reason`: mục tiêu của câu bẫy, nếu có.
+
+Ground truth của bài lab là mock data trong `src/tools.py`:
+
+| Dữ liệu | Nguồn |
+|---|---|
+| Công việc, kỹ năng, lương | `JOB_DESCRIPTIONS` |
+| Hồ sơ ứng viên | `CANDIDATES` |
+| Người phỏng vấn và slot trống | `INTERVIEWERS` |
+| Điểm phù hợp | `evaluations` trong `evaluate_candidate_fit()` |
+| Bảng xếp hạng | `rankings` trong `rank_candidates()` |
+
+Ví dụ, `CD-001` được kỳ vọng đạt `9/10` với `JOB-2024-001` vì cặp này
+được khai báo trực tiếp trong `evaluations`. `CD-999` được xem là ID không hợp
+lệ vì không tồn tại trong `CANDIDATES`.
+
+“Đúng” trong báo cáo có nghĩa là output nhất quán với mock data và workflow
+được mô tả trong test case; không có nghĩa là dữ liệu đã được xác minh với một
+hệ thống HR thật.
+
+## 5. Quy tắc đánh giá
+
+- **Đạt:** gọi đủ tool cần thiết, đúng thứ tự nghiệp vụ, Observation khớp mock
+  data và Final Answer phản ánh đúng kết quả.
+- **Đạt một phần:** kết quả chính hợp lý hoặc guardrail hoạt động, nhưng thiếu
+  tool, sai thứ tự hoặc không khớp hoàn toàn `tools_used`.
+- **Không đạt:** chưa hoàn thành yêu cầu, tuyên bố hành động đã làm khi tool
+  chưa thực thi, gọi tool bằng placeholder hoặc bỏ qua guardrail quan trọng.
+
+---
+
+## 6. Tổng hợp kết quả 10 test case
+
+| TC | Mục tiêu | Tool thực tế | Kết quả | Nhận xét |
+|:---:|---|---|:---:|---|
+| 1 | Đọc JD | `get_job_description` | ✅ Đạt | Trả đúng yêu cầu, kỹ năng và mức lương. |
+| 2 | Đọc hồ sơ | `get_candidate_profile` | ✅ Đạt | Hồ sơ `CD-001` khớp mock data. |
+| 3 | So sánh ứng viên–JD | `get_candidate_profile` → `get_job_description` → `evaluate_candidate_fit` | ✅ Đạt | Đúng thứ tự và kết luận `9/10`. |
+| 4 | Kiểm tra lịch, tạo lịch, gửi email | `check_interviewer_availability` | ❌ Không đạt | Agent nói “sẽ hẹn” nhưng không gọi `schedule_interview` và `send_email`. |
+| 5 | Xếp hạng và mời top 2 | `rank_candidates` → hai lần `get_candidate_profile` → `check_interviewer_availability` | ❌ Không đạt | Gọi tool bằng placeholder `interviewer_id`, nhận lỗi và không gửi lời mời. |
+| 6 | Đánh giá, kiểm tra lịch, đặt lịch, gửi email | `get_candidate_profile` → `evaluate_candidate_fit` → `schedule_interview` → `send_email` | ⚠️ Đạt một phần | Hoàn tất lịch và email nhưng bỏ qua `check_interviewer_availability`; email được LLM tự tạo, không có trong hồ sơ. |
+| 7 | ID ứng viên không tồn tại | `get_candidate_profile` | ⚠️ Đạt một phần | Guardrail dừng đúng sau lỗi, nhưng khác tool kỳ vọng `evaluate_candidate_fit`. |
+| 8 | ID công việc không tồn tại | `rank_candidates` | ✅ Đạt | Dừng đúng sau Observation lỗi. |
+| 9 | Slot không khả dụng | `check_interviewer_availability` | ✅ Đạt | Không tạo lịch và đề nghị chọn slot khác. |
+| 10 | Từ chối ứng viên đã nhận việc khác | `reject_candidate` | ✅ Đạt | Lý do hợp lý; tool xác nhận email đã tự động gửi. |
+
+**Tổng hợp:** 6 đạt, 2 đạt một phần, 2 không đạt.
+
+---
+
+## 7. Trace các trường hợp cần cải thiện
+
+### Test case 4 — Tuyên bố hành động nhưng chưa thực thi
 
 ```text
-Thought: Cần kiểm tra mức độ phù hợp của ứng viên với công việc.
-Action: evaluate_candidate_fit["CD-999", "JOB-2024-001"]
-Observation: ❌ LỖI: Ứng viên "CD-999" không tồn tại.
+Action: check_interviewer_availability["INT-001", "2024-12-20"]
+Observation: Có slot 2024-12-20 09:00.
+
+Final Answer: Tôi sẽ hẹn phỏng vấn ứng viên CD-001 với Trần Hải
+vào lúc 09:00 ngày 20/12/2024.
+```
+
+**Đánh giá:** không đạt. Log không có:
+
+```text
+Action: schedule_interview[...]
+Action: send_email[...]
+```
+
+Do đó Final Answer chỉ là lời hứa, không phải xác nhận hành động đã hoàn thành.
+
+### Test case 5 — LLM dùng placeholder làm tham số thật
+
+```text
+Action: check_interviewer_availability["interviewer_id", "date_range"]
+Observation: ❌ LỖI: Người phỏng vấn 'interviewer_id' không tồn tại.
+```
+
+**Đánh giá:** không đạt yêu cầu mời hai ứng viên hàng đầu. Guardrail đã làm
+đúng nhiệm vụ là dừng sau lỗi, nhưng LLM đáng lẽ phải hỏi người dùng bổ sung
+interviewer và thời gian, không được gọi tool bằng placeholder.
+
+### Test case 6 — Bỏ qua bước kiểm tra lịch
+
+```text
+Action: evaluate_candidate_fit["CD-003", "JOB-2024-003"]
+Observation: 8/10 — PHÁT TRIỂN.
+
+Action: schedule_interview["CD-003", "INT-002", "2024-12-19 13:00"]
+Observation: Đã tạo lịch phỏng vấn.
+
+Action: send_email["leminhc@example.com", ...]
+Observation: Email được gửi thành công.
+```
+
+**Đánh giá:** đạt một phần. Agent hoàn tất yêu cầu, nhưng không gọi
+`check_interviewer_availability` trước `schedule_interview` như workflow và
+`tools_used` yêu cầu. Địa chỉ `leminhc@example.com` cũng không xuất hiện trong
+`CANDIDATES`, vì vậy đây là dữ liệu do LLM tự tạo.
+
+### Test case 7 — Guardrail khi ứng viên không tồn tại
+
+```text
+Action: get_candidate_profile["CD-999"]
+Observation: ❌ LỖI: Không tìm thấy ứng viên 'CD-999'.
 
 Final Answer: Tool báo lỗi nên Agent dừng lại để tránh thao tác sai dữ liệu.
 ```
 
-Kết quả: đạt guardrail; không gọi thêm tool sau Observation lỗi.
+**Đánh giá:** guardrail đạt vì không có tool nào được gọi sau lỗi. Tuy nhiên,
+tool thực tế khác `evaluate_candidate_fit` trong đặc tả test nên case này chỉ
+được đánh dấu đạt một phần khi chấm nghiêm theo `tools_used`.
 
-## Test case 9 — Xung đột lịch
-
-Yêu cầu: đặt lịch `2024-12-25 15:00` với `INT-001`.
+### Test case 9 — Phanh xung đột lịch
 
 ```text
-Thought: Phải kiểm tra lịch trống trước khi tạo lịch.
-Action: check_interviewer_availability["INT-001", "2024-12-25 15:00"]
-Observation: Các slot còn trống là 2024-12-20 09:00,
-2024-12-20 14:00, 2024-12-21 10:00 và 2024-12-23 15:00.
+Action: check_interviewer_availability["INT-001", "2024-12-25"]
+Observation: Chỉ có các slot từ 2024-12-20 đến 2024-12-23.
 
-Final Answer: Slot yêu cầu không có trong lịch trống nên Agent
-không tạo lịch phỏng vấn.
+Final Answer: Lịch phỏng vấn 2024-12-25 15:00 không có sẵn.
+Bạn có muốn chọn một khoảng thời gian khác không?
 ```
 
-Kết quả: đạt guardrail; `schedule_interview` và `send_email` không được gọi.
+**Đánh giá:** đạt về quyết định an toàn; `schedule_interview` và `send_email`
+không được gọi.
 
-## Phanh an toàn đã xác nhận
+---
 
-1. Tool không tồn tại hoặc sai số tham số được chuyển thành Observation lỗi.
-2. Exception phát sinh bên trong tool được `safe_tool` bắt và trả về chuỗi lỗi.
-3. Observation chứa `LỖI` làm Agent dừng ngay.
-4. Trong luồng qua `run_react_agent`, slot không khả dụng làm Agent dừng trước
-   hành động tạo lịch.
-5. ReAct loop không được vượt quá `MAX_ITERATIONS`.
+## 8. Guardrail được xác nhận từ log
 
-## Kiểm thử tự động
+1. Observation chứa `LỖI` làm Agent dừng ngay ở test 5, 7 và 8.
+2. Agent không tạo lịch khi nhận thấy slot không khả dụng ở test 9.
+3. Action gọi tool không tồn tại hoặc tham số sai được chuyển thành chuỗi lỗi
+   thay vì làm ứng dụng crash.
+4. ReAct loop không chạy quá `MAX_ITERATIONS = 5`.
 
-Chạy:
+Guardrail chưa được xác nhận đầy đủ:
+
+- Test 6 cho thấy LLM có thể gọi thẳng `schedule_interview` mà không kiểm tra
+  lịch trước.
+- `schedule_interview()` chưa tự kiểm tra slot có nằm trong
+  `INTERVIEWERS[interviewer_id]["available_slots"]`.
+- `check_interviewer_availability()` hiện hiển thị toàn bộ slot và chưa lọc
+  đúng theo `date_range`.
+- `send_email()` chấp nhận địa chỉ do LLM tự tạo mà không kiểm tra dữ liệu.
+
+---
+
+## 9. So sánh tổng quát giữa Baseline và ReAct
+
+Trong log, Baseline Chatbot thường nói sẽ “tra cứu”, “kiểm tra” hoặc “thực
+hiện xếp hạng”, nhưng không có Action và Observation. Vì vậy Baseline không
+thực sự truy cập dữ liệu tool.
+
+ReAct Agent tạo được trace kiểm chứng gồm `Thought → Action → Observation`,
+nhưng vẫn có thể:
+
+- Dừng quá sớm và chỉ hứa sẽ thực hiện hành động như test 4.
+- Tự tạo placeholder hoặc dữ liệu chưa tồn tại như test 5 và test 6.
+- Bỏ qua một bước bắt buộc trong workflow.
+
+Điều này cho thấy ReAct có khả năng thực thi cao hơn Baseline, nhưng cần
+guardrail ở cấp code thay vì chỉ dựa vào system prompt.
+
+---
+
+## 10. Kiểm thử tự động và giới hạn đánh giá
+
+Unit test chạy bằng:
 
 ```powershell
-.\venv\Scripts\python.exe -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
-Bộ test dùng `ScriptedProvider` để mô phỏng đường đi của provider thật qua
-vòng `LLM Action -> Tool Observation -> LLM Final Answer`; không có request
-API thật trong unit test. Planner viết sẵn chỉ được dùng với `MockProvider` để
-thử offline. Output LLM sai định dạng cũng làm Agent dừng an toàn.
-
-## Kết quả xác minh Mốc 3
-
-Ngày chạy: 2026-07-28.
+Kết quả gần nhất:
 
 ```text
 Ran 5 tests in 0.002s
 OK
 ```
 
-Ba kịch bản được chạy lại trực tiếp bằng `MockProvider`:
+Năm unit test dùng `MockProvider` hoặc `ScriptedProvider`; chúng không thay thế
+integration test với OpenAI. Ngược lại, log OpenAI cung cấp bằng chứng
+integration thực tế nhưng chưa được chấm bằng assertion tự động.
 
-- Test case 3: gọi tuần tự `get_candidate_profile` → `get_job_description` →
-  `evaluate_candidate_fit`, kết luận `9/10 - RẤT PHÙ HỢP`.
-- Test case 7: Observation báo `LỖI` với `CD-999`; Agent dừng ngay và không gọi
-  thêm tool.
-- Test case 9: slot `2024-12-25 15:00` không xuất hiện trong lịch trống; Agent
-  dừng trước `schedule_interview` và `send_email`.
+`run_demo()` hiện chỉ in `tools_used`; chưa ghi lại và tự so sánh tool thực tế
+với tool kỳ vọng. Vì vậy việc chương trình chạy hết 10 case mà không crash
+không đồng nghĩa cả 10 case đều đạt.
 
-Ngoài ra, `app.py`, `prompts.py`, `tools.py` và `providers.py` đều vượt qua
-kiểm tra biên dịch bằng `python -m py_compile`. Chế độ offline có thể chạy ngay
-cả khi máy chưa cài `python-dotenv`; các provider online vẫn dùng `.env` khi
-dependency này có mặt.
+Các kiểm tra cần bổ sung:
 
-## Giới hạn của kết quả đánh giá
+- Ghi lại tool call thực tế và so sánh với `tools_used`.
+- Tự động kiểm tra `success_criteria`.
+- Cấm `schedule_interview` nếu chưa có Observation xác nhận slot.
+- Cấm placeholder như `"interviewer_id"` và `"date_range"`.
+- Xác minh email phải có trong dữ liệu ứng viên hoặc do người dùng cung cấp.
+- Kiểm tra hành động có tác động thực chỉ được báo thành công sau Observation.
+- Bổ sung test cho giới hạn `MAX_ITERATIONS` và luồng cần hơn năm bước.
 
-`config/test_cases.json` hiện đóng vai trò bộ đặc tả và dữ liệu đầu vào cho
-demo. Hàm `run_demo()` có hiển thị `tools_used`, nhưng chưa tự động so sánh
-danh sách tool thực tế với danh sách mong đợi và chưa tự diễn giải toàn bộ
-chuỗi `success_criteria`. Năm unit test trong `tests/test_react_agent.py` mới
-là các kiểm tra có assertion tự động.
+---
 
-Ngoài ra, guardrail slot hiện nằm trong `run_react_agent`. Nếu gọi trực tiếp
-`schedule_interview()` thì tool chưa tự kiểm tra thời điểm có thuộc
-`INTERVIEWERS[interviewer_id]["available_slots"]` hay không. Tool
-`check_interviewer_availability()` cũng chưa lọc danh sách theo `date_range`.
-Vì vậy kết luận “đạt” của test case 9 chỉ áp dụng cho luồng Agent hiện tại,
-không chứng minh rằng riêng từng tool đã an toàn trước mọi cách gọi.
+## 11. Kết luận
 
-Các kiểm tra nên bổ sung:
+Trace OpenAI cho thấy Agent xử lý tốt các yêu cầu đọc dữ liệu, đánh giá ứng
+viên và các edge case ID không tồn tại hoặc lịch không khả dụng. Tuy nhiên,
+luồng có tác động thực chưa ổn định: test 4 không tạo lịch, test 5 dùng
+placeholder sai, và test 6 bỏ qua kiểm tra lịch đồng thời tự tạo email.
 
-- So sánh tự động tool thực tế với `tools_used` của cả 10 test case.
-- Kiểm tra `success_criteria` bằng assertion thay vì chỉ đọc log.
-- Kiểm tra gọi thẳng `schedule_interview` với slot không hợp lệ và slot trùng.
-- Kiểm tra lọc lịch theo ngày hoặc khoảng ngày.
-- Kiểm tra email, lý do từ chối và các tham số rỗng.
-- Kiểm tra Agent dừng chính xác tại `MAX_ITERATIONS`.
-- Chạy integration test riêng cho provider API khi có API key.
+Kết quả Mốc 3 nên được ghi nhận là **đạt phần lõi ReAct và guardrail lỗi cơ
+bản, nhưng chưa đạt hoàn toàn workflow scheduling/email**. Ưu tiên tiếp theo
+là đưa các quy tắc bắt buộc vào code và tool validation, thay vì chỉ mô tả
+trong prompt.
