@@ -1,32 +1,69 @@
 [
   {
     "id": 1,
-    "category": "🟢 Đơn giản (Chỉ cần LLM)",
-    "question": "Thủ đô của Việt Nam là gì?",
-    "expected_behavior": "Chatbot trả lời trực tiếp từ kiến thức có sẵn."
+    "category": "🟢 Đơn giản (Single Tool)",
+    "question": "Công việc Python Developer (JOB-2024-001) yêu cầu gì?",
+    "expected_behavior": "Agent gọi get_job_description('JOB-2024-001') và trả lại thông tin chi tiết công việc.",
+    "tools_used": ["get_job_description"]
   },
   {
     "id": 2,
-    "category": "🟢 Đơn giản (Chỉ cần LLM)",
-    "question": "Nêu 3 lời khuyên để học tốt lập trình.",
-    "expected_behavior": "Chatbot trả lời trực tiếp từ kiến thức có sẵn."
+    "category": "🟢 Đơn giản (Single Tool)",
+    "question": "Hồ sơ của ứng viên CD-001 như thế nào?",
+    "expected_behavior": "Agent gọi get_candidate_profile('CD-001') và trả lại thông tin ứng viên.",
+    "tools_used": ["get_candidate_profile"]
   },
   {
     "id": 3,
-    "category": "🟡 Multi-step (Cần Tool)",
-    "question": "Thời tiết ở Hà Nội hôm nay thế nào và tôi nên mặc gì đi chơi?",
-    "expected_behavior": "Agent gọi tool get_weather('Hà Nội') rồi suy luận trang phục."
+    "category": "🟡 Multi-step (2-3 Tools)",
+    "question": "CD-001 có phù hợp với công việc Python Developer (JOB-2024-001) không?",
+    "expected_behavior": "Agent gọi: (1) get_candidate_profile('CD-001'), (2) get_job_description('JOB-2024-001'), (3) evaluate_candidate_fit('CD-001', 'JOB-2024-001') → trả lại đánh giá chi tiết.",
+    "tools_used": ["get_candidate_profile", "get_job_description", "evaluate_candidate_fit"]
   },
   {
     "id": 4,
-    "category": "🟡 Multi-step (Cần gọi 2 Tools)",
-    "question": "Kiểm tra vé máy bay từ TP.HCM đi Hà Nội ngày mai và dự báo thời tiết ở Hà Nội.",
-    "expected_behavior": "Agent gọi tool search_flights và get_weather để trả lời đầy đủ."
+    "category": "🟡 Multi-step (3-4 Tools + Reasoning)",
+    "question": "Nếu CD-001 phù hợp với JOB-2024-001, hãy kiểm tra lịch của INT-001 và hẹn phỏng vấn vào ngày 20/12 lúc 09:00.",
+    "expected_behavior": "Agent: (1) evaluate_candidate_fit('CD-001', 'JOB-2024-001'), (2) nếu OK → check_interviewer_availability('INT-001', '2024-12-20'), (3) schedule_interview('CD-001', 'INT-001', '2024-12-20 09:00'), (4) send_email với thông báo.",
+    "tools_used": ["evaluate_candidate_fit", "check_interviewer_availability", "schedule_interview", "send_email"]
   },
   {
     "id": 5,
-    "category": "🔴 Edge Case (Bẫy Guardrail)",
-    "question": "Tra cứu thời tiết ở thành phố Atlantis ngày 32/13/2026.",
-    "expected_behavior": "Tool báo lỗi tham số/thất bại, Guardrail ngắt sau 3 bước và trả về thông báo lịch sự."
+    "category": "🟡 Multi-step (Complex - Ranking & Scheduling)",
+    "question": "Xếp hạng ứng viên cho JOB-2024-001, sau đó gửi email mời phỏng vấn cho 2 ứng viên hàng đầu.",
+    "expected_behavior": "Agent: (1) rank_candidates('JOB-2024-001'), (2) extract top 2 candidates, (3) schedule_interview cho từng ứng viên, (4) send_email với lịch hẹn.",
+    "tools_used": ["rank_candidates", "schedule_interview", "send_email"]
+  },
+  {
+    "id": 6,
+    "category": "🔴 Bẫy - Ứng viên không tồn tại",
+    "question": "Đánh giá mức độ phù hợp của ứng viên CD-999 với công việc JOB-2024-001.",
+    "expected_behavior": "Agent gọi get_candidate_profile('CD-999') → tool trả lỗi 'Không tìm thấy ứng viên' → Agent xử lý gracefully, báo lỗi và không tiếp tục.",
+    "tools_used": ["get_candidate_profile"],
+    "trap_reason": "Dữ liệu không tồn tại - cần xử lý lỗi"
+  },
+  {
+    "id": 7,
+    "category": "🔴 Bẫy - Công việc không tồn tại",
+    "question": "Xếp hạng ứng viên cho công việc JOB-2025-999 và lên kế hoạch phỏng vấn.",
+    "expected_behavior": "Agent gọi rank_candidates('JOB-2025-999') → tool trả lỗi → Agent dừng lại, không tiếp tục schedule_interview.",
+    "tools_used": ["rank_candidates"],
+    "trap_reason": "Công việc không tồn tại - cần validate input trước"
+  },
+  {
+    "id": 8,
+    "category": "🔴 Bẫy - Thời gian không khả dụng",
+    "question": "CD-001 rất phù hợp với JOB-2024-001. Hẹn phỏng vấn vào ngày 25/12 lúc 14:00 với INT-001.",
+    "expected_behavior": "Agent: (1) evaluate_candidate_fit → OK, (2) check_interviewer_availability('INT-001', '2024-12-25') → không có slot trống, (3) báo lỗi và đề xuất ngày khác thay vì bắt buộc tạo lịch.",
+    "tools_used": ["evaluate_candidate_fit", "check_interviewer_availability"],
+    "trap_reason": "Xung đột lịch - cần kiểm tra khả dụng trước khi schedule"
+  },
+  {
+    "id": 9,
+    "category": "🔴 Bẫy - Suy luận sai (Không nên from chỉ vì match cao)",
+    "question": "CD-001 có điểm match 9/10 với JOB-2024-001 nhưng CD-001 vừa trúng tuyển công ty khác. Tôi nên làm gì?",
+    "expected_behavior": "Agent cần suy luận: dù match cao nhưng ứng viên không khả dụng → không nên schedule. Đề xuất reject_candidate('CD-001', 'Ứng viên vừa trúng tuyển nơi khác').",
+    "tools_used": ["reject_candidate"],
+    "trap_reason": "Cần suy luận logic, không phải chỉ dựa trên số điểm"
   }
 ]
