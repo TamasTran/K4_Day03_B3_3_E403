@@ -3,6 +3,21 @@
 Trợ Lý Sàng Lọc Hồ Sơ Tuyển Dụng & Hẹn Phỏng Vấn
 """
 
+from functools import wraps
+
+
+def safe_tool(func):
+    """Biến mọi exception của tool thành Observation lỗi, không làm sập Agent."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as exc:
+            return f"❌ LỖI: Tool '{func.__name__}' không thể thực thi: {exc}"
+
+    return wrapper
+
 # ============================================================================
 # MOCK DATABASE - Giả lập dữ liệu từ HRIS/ATS
 # ============================================================================
@@ -82,6 +97,7 @@ INTERVIEWERS = {
 # ============================================================================
 
 
+@safe_tool
 def get_job_description(job_id: str) -> str:
     """
     Lấy thông tin chi tiết công việc từ hệ thống HRIS.
@@ -108,6 +124,7 @@ def get_job_description(job_id: str) -> str:
     )
 
 
+@safe_tool
 def get_candidate_profile(candidate_id: str) -> str:
     """
     Lấy hồ sơ ứng viên từ hệ thống HRIS.
@@ -135,6 +152,7 @@ def get_candidate_profile(candidate_id: str) -> str:
     )
 
 
+@safe_tool
 def evaluate_candidate_fit(candidate_id: str, job_id: str) -> str:
     """
     Chấm điểm phù hợp (1-10) kèm nhận xét giữa một ứng viên và một vị trí cụ thể.
@@ -171,6 +189,7 @@ def evaluate_candidate_fit(candidate_id: str, job_id: str) -> str:
     return f"⚠️ Chưa có dữ liệu đánh giá cho cặp ({candidate_id}, {job_id})."
 
 
+@safe_tool
 def rank_candidates(job_id: str) -> str:
     """
     Xếp hạng toàn bộ ứng viên đang ứng tuyển cho một vị trí.
@@ -210,6 +229,7 @@ def rank_candidates(job_id: str) -> str:
     return result
 
 
+@safe_tool
 def check_interviewer_availability(interviewer_id: str, date_range: str) -> str:
     """
     Xem các khung giờ còn trống của người phỏng vấn trong một khoảng thời gian.
@@ -243,6 +263,7 @@ def check_interviewer_availability(interviewer_id: str, date_range: str) -> str:
     return result
 
 
+@safe_tool
 def schedule_interview(candidate_id: str, interviewer_id: str, interview_datetime: str) -> str:
     """
     Tạo lịch phỏng vấn chính thức trong hệ thống.
@@ -274,6 +295,7 @@ def schedule_interview(candidate_id: str, interviewer_id: str, interview_datetim
     )
 
 
+@safe_tool
 def send_email(recipient: str, subject: str, body: str) -> str:
     """
     Gửi email thông báo cho ứng viên hoặc người phỏng vấn.
@@ -296,6 +318,7 @@ def send_email(recipient: str, subject: str, body: str) -> str:
     )
 
 
+@safe_tool
 def reject_candidate(candidate_id: str, reason: str) -> str:
     """
     Cập nhật trạng thái "Từ chối" cho một ứng viên kèm lý do.
