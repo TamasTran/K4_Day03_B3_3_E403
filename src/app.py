@@ -14,7 +14,12 @@ import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv() -> bool:
+        """Cho phép chạy offline khi chưa cài python-dotenv."""
+        return False
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

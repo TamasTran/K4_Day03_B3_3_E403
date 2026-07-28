@@ -6,8 +6,12 @@ Hỗ trợ chuyển đổi linh hoạt giữa các nhà cung cấp AI chỉ bằ
 import os
 import sys
 import json
-import requests
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv() -> bool:
+        """Cho phép MockProvider chạy mà không cần python-dotenv."""
+        return False
 
 # Đảm bảo in ra Tiếng Việt và Emojis không bị lỗi trên Windows Console
 if sys.stdout.encoding != 'utf-8':
@@ -108,6 +112,8 @@ class OpenRouterProvider(BaseLLMProvider):
         if not self.api_key or self.api_key == "your_openrouter_api_key_here":
             return "[OpenRouter Error]: Chưa cấu hình OPENROUTER_API_KEY trong file .env!"
         try:
+            import requests
+
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
